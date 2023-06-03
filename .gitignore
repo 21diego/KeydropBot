@@ -1,7 +1,5 @@
 dist/
 node_modules/
-cookies/*.txt
-cookies/*.txt.*
 package-lock.json
 keydropbot.log
 *.exe
