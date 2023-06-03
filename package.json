@@ -1,0 +1,67 @@
+{
+	"name": "keydrop-bot",
+	"version": "0.5.5",
+	"description": "BOT used to automate processes on keydrop",
+	"homepage": "https://github.com/nan4k7/",
+	"author": "Hernán M. Nesprías <dev@dmcfull.com>",
+	"license": "(ISC OR GPL-3.0)",
+	"main": "app.js",
+	"scripts": {
+		"start": "node chromium.js && node app.js",
+		"cleandist": "del-cli --force ./dist",
+		"copy-assets": "mkdir dist\\chrome && xcopy /s chrome dist\\chrome && xcopy /Y readme.md dist\\ && xcopy /Y config.default.json dist\\ && mkdir dist\\cookies 2>nul && copy cookies\\cookie.sample dist\\cookies\\cookie.sample.txt",
+		"prettier": "npx prettier --write **/*.js **/*.json **/*.md",
+		"build": "npm run cleandist && npm run copy-assets && pkg -c package.json app.js && node zipdist.js"
+	},
+	"pkg": {
+		"outputPath": "./dist",
+		"targets": [
+			"node16-win-x64"
+		],
+		"assets": [
+			"./node_modules/axios/dist/node/axios.cjs",
+			"./favicon.ico"
+		],
+		"scripts": [
+			"node_modules/vm2/lib/*.js",
+			"node_modules/puppeteer/lib/*.js",
+			"node_modules/puppeteer-extra-plugin-stealth/**/*.js"
+		]
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/nan4k7/KeyDropBot.git"
+	},
+	"keywords": [
+		"keydrop",
+		"bot",
+		"giveaways"
+	],
+	"dependencies": {
+		"@antiadmin/anticaptchaofficial": "^1.0.30",
+		"@infosimples/node_two_captcha": "^1.2.0",
+		"ansi-to-html": "^0.7.2",
+		"axios": "^1.3.4",
+		"axios-retry": "^3.4.0",
+		"cookiefile": "^1.0.10",
+		"discord.js": "^13.7.0",
+		"express": "^4.18.2",
+		"form-data": "^4.0.0",
+		"https-proxy-agent": "^5.0.1",
+		"multer": "^1.4.5-lts.1",
+		"promise": "^8.3.0",
+		"puppeteer": "^20.5.0",
+		"puppeteer-extra": "^3.3.6",
+		"puppeteer-extra-plugin-proxy": "^1.0.2",
+		"puppeteer-extra-plugin-stealth": "^2.11.2",
+		"serve-favicon": "^2.5.0",
+		"socks-proxy-agent": "^7.0.0",
+		"ws": "^8.13.0"
+	},
+	"devDependencies": {
+		"archiver": "^5.3.1",
+		"del-cli": "^5.0.0",
+		"pkg": "^5.8.1",
+		"prettier": "^2.8.7"
+	}
+}
