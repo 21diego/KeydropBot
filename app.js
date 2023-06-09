@@ -89,14 +89,21 @@ const getDate = () => {
 	return getDay() + ' ' + getTime();
 };
 
-const getDay = () => {
+const convertDateToUTC = (date) => {
+	return new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), date.getUTCHours(), date.getUTCMinutes(), date.getUTCSeconds());
+}
+
+const getDay = (separator = '-', utc = false) => {
 	let date_time = new Date();
+
+	if (utc === true)
+		date_time = convertDateToUTC(date_time);
 
 	let date = ('0' + date_time.getDate()).slice(-2);
 	let month = ('0' + (date_time.getMonth() + 1)).slice(-2);
 	let year = date_time.getFullYear();
 
-	return year + '-' + month + '-' + date;
+	return year + separator + month + separator + date;
 };
 
 const getTime = () => {
@@ -107,6 +114,17 @@ const getTime = () => {
 	let seconds = String(date_time.getSeconds()).padStart(2, '0');
 
 	return hours + ':' + minutes + ':' + seconds;
+};
+
+const getHours = (utc = false) => {
+	let date_time = new Date();
+
+	if (utc === true)
+		date_time = convertDateToUTC(date_time);
+
+	let hours = String(date_time.getHours()).padStart(2, '0');
+
+	return hours;
 };
 
 const onlyPositive = (intNum) => {
@@ -300,14 +318,23 @@ const setKeyDropCookies = async () => {
 			headless: false,
 			defaultViewport: null,
 			args: [
+				`--user-agent=${config.useragent}`,
 				'--no-sandbox',
 				'--disable-setuid-sandbox',
+
 				'--app=https://key-drop2.com/?q=/en/Login_page',
+
 				'--disable-extensions',
 				'--disable-popup-blocking',
-				'--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36'
+				'--disable-dev-shm-usage',
+				'--disable-accelerated-2d-canvas',
+				'--no-first-run',
+				'--no-zygote',
+				'--single-process', // <- this one doesn't works in Windows
+				'--disable-gpu'
 			],
 		};
+
 
 		pupConfig = await fixPuppeteerLaunchPath(pupConfig);
 		pupConfig = await fixPuppeteerProxy(pupConfig);
@@ -413,8 +440,10 @@ const getGoldMessages = async () => {
 				}
 
 				try {
-					const messages = await channel.messages.fetch({ limit: 20 });
-					messages.forEach(msg => {
+					const messages = await channel.messages.fetch({ limit: 6 });
+
+					for (let msg of messages.values()){
+
 						let code = msg.getCode();
 						let stamp = 0;
 						let currentTimestamp = Date.now();
@@ -427,10 +456,11 @@ const getGoldMessages = async () => {
 
 								if (diffTs <= config.keydrop_goldcode_expire_interval) {
 									goldcodemgr.redeem(code, 'History');
+									await wait(10000); //Adds 10s delay
 								}
 							}
 						}
-					});
+					}
 				}
 				catch (error) {
 					logger('DiscordGold', `ERROR getting messages: ${error}`, '31');
@@ -447,7 +477,16 @@ const configPupProxy = async () => {
 			args: [
 				`--user-agent=${config.useragent}`,
 				'--no-sandbox',
-				'--disable-setuid-sandbox'
+				'--disable-setuid-sandbox',
+
+				'--disable-extensions',
+				'--disable-popup-blocking',
+				'--disable-dev-shm-usage',
+				'--disable-accelerated-2d-canvas',
+				'--no-first-run',
+				'--no-zygote',
+				'--single-process', // <- this one doesn't works in Windows
+				'--disable-gpu'
 			]
 		};
 
@@ -473,7 +512,7 @@ const configPupProxy = async () => {
 
 		try {
 			await page.goto('https://key-drop.com/token');
-			await page.waitForTimeout(100);
+			await page.waitForTimeout(1000);
 		}
 		catch {
 			logger('PupProxy', `ERROR network`, '31');
@@ -504,7 +543,7 @@ const configPupProxy = async () => {
 				const result = await runPupProxy(url, "put", req.headers || {}, req.cookies || {});
 				res.send(result);
 			} catch (error) {
-				logger('PupProxy', `ERROR PUT: ${error}`, '31');
+				logger('PupProxy', `ERROR PUT: ${JSON.stringify(error)}`, '31');
 
 				res.status(500).send('Something went wrong.');
 			}
@@ -517,7 +556,7 @@ const configPupProxy = async () => {
 				const result = await runPupProxy(url, 'get', req.headers || {}, req.cookies || {});
 				res.send(result);
 			} catch (error) {
-				logger('PupProxy', `ERROR GET: ${error}`, '31');
+				logger('PupProxy', `ERROR GET: ${JSON.stringify(error)}`, '31');
 
 				res.status(500).send('Something went wrong.');
 			}
@@ -535,7 +574,7 @@ const configPupProxy = async () => {
 				const result = await runPupProxy(url, 'post', req.headers || {}, req.cookies || {}, formData, xmlData);
 				res.send(result);
 			} catch (error) {
-				logger('PupProxy', `ERROR POST: ${error}`, '31');
+				logger('PupProxy', `ERROR POST: ${JSON.stringify(error)}`, '31');
 
 				res.status(500).send('Something went wrong.');
 			}
@@ -631,7 +670,7 @@ const runPupProxy = async (url, method, headers, cookies, formData = {}, xmlData
 
 			try {
 				await page.goto("https://key-drop.com/", { waitUntil: 'networkidle0' });
-				await page.waitForTimeout(100);
+				await page.waitForTimeout(1000);
 			}
 			catch {
 				logger('PupProxy', `ERROR network`, '31');
@@ -723,7 +762,16 @@ const runPupProxy = async (url, method, headers, cookies, formData = {}, xmlData
 				body: bodyObj
 			});
 
-			return response.json();
+			let json;
+
+			try {
+				json = response.json();
+			}
+			catch {
+				json = {};
+			}
+
+			return json;
 		}, formData, xmlData, url, method, headers, cookiesArray);
 
 		content = response;
@@ -737,7 +785,7 @@ const runPupProxy = async (url, method, headers, cookies, formData = {}, xmlData
 			}
 
 			response = await page.goto(url, { waitUntil: 'networkidle0' });
-			await page.waitForTimeout(100);
+			await page.waitForTimeout(1000);
 
 			content = await response.text();
 
@@ -815,7 +863,6 @@ const run = async (configOV = '') => {
 		config.keydrop_token_interval = typeof config.keydrop_token_interval !== 'undefined' ? onlyPositive(parseInt(config.keydrop_token_interval)) : 1200000;
 		config.keydrop_giveaways_interval = typeof config.keydrop_giveaways_interval !== 'undefined' ? onlyPositive(parseInt(config.keydrop_giveaways_interval)) : 480000;
 		config.keydrop_giveaways_results_interval = typeof config.keydrop_giveaways_results_interval !== 'undefined' ? onlyPositive(parseInt(config.keydrop_giveaways_results_interval)) : 480000;
-		config.keydrop_giveaways_cooldown_interval = typeof config.keydrop_giveaways_cooldown_interval !== 'undefined' ? onlyPositive(parseInt(config.keydrop_giveaways_cooldown_interval)) : 3600000;
 		config.keydrop_giveaways_maxrecheck_interval = typeof config.keydrop_giveaways_maxrecheck_interval !== 'undefined' ? onlyPositive(parseInt(config.keydrop_giveaways_maxrecheck_interval)) : 3600000;
 		config.keydrop_battles_wscon_interval = typeof config.keydrop_battles_wscon_interval !== 'undefined' ? onlyPositive(parseInt(config.keydrop_battles_wscon_interval)) : 60000;
 		config.keydrop_battles_maxrecheck_interval = typeof config.keydrop_battles_maxrecheck_interval !== 'undefined' ? onlyPositive(parseInt(config.keydrop_battles_maxrecheck_interval)) : 14400000;
@@ -826,12 +873,13 @@ const run = async (configOV = '') => {
 		config.keydrop_goldcode_history_interval = typeof config.keydrop_goldcode_history_interval !== 'undefined' ? onlyPositive(parseInt(config.keydrop_goldcode_history_interval)) : 60000;
 		config.keydrop_goldcode_expire_interval = typeof config.keydrop_goldcode_expire_interval !== 'undefined' ? onlyPositive(parseInt(config.keydrop_goldcode_expire_interval)) : 900000;
 
-		config.keydrop_battles_maxusercount = typeof config.keydrop_battles_maxusercount !== 'undefined' ? config.keydrop_battles_maxusercount : [];
+
 		config.keydrop_battles_minprice = typeof config.keydrop_battles_minprice !== 'undefined' ? parseFloat(config.keydrop_battles_minprice) : 0;
+		config.keydrop_battles_cases_avoid = typeof config.keydrop_battles_cases_avoid !== 'undefined' ? config.keydrop_battles_cases_avoid : [];
+		config.keydrop_battles_maxusercount = typeof config.keydrop_battles_maxusercount !== 'undefined' ? config.keydrop_battles_maxusercount : [];
 		config.keydrop_giveaways_retries = typeof config.keydrop_giveaways_retries !== 'undefined' ? onlyPositive(parseInt(config.keydrop_giveaways_retries)) : 1;
 		config.keydrop_giveaways_minprize = typeof config.keydrop_giveaways_minprize !== 'undefined' ? onlyPositive(parseFloat(config.keydrop_giveaways_minprize)) : 0;
 		config.keydrop_goldencases_autoopen_price = typeof config.keydrop_goldencases_autoopen_price !== 'undefined' ? onlyPositive(parseInt(config.keydrop_goldencases_autoopen_price)) : 0;
-		config.keydrop_history_regs = typeof config.keydrop_history_regs !== 'undefined' ? onlyPositive(parseInt(config.keydrop_history_regs)) : 100000;
 
 
 
@@ -984,7 +1032,7 @@ const run = async (configOV = '') => {
 
 		goldcodemgr = new GoldCodeManager();
 
-		Discord.Message.prototype.getCode = () => {
+		Discord.Message.prototype.getCode = function () {
 			if (config.discord_golden_code_channels.includes(this.channelId)) {
 				if (this.author.id === config.discord_bot_gold_id && config.discord_bot_gold_id !== '') {
 					if (this.content?.length === 17) {
@@ -1115,7 +1163,7 @@ const getKeyDropUserInfo = async () => {
 										logger('GoldCasesData', `ERROR: no sections data`, '31');
 									}
 								} else {
-									logger('GoldCasesData', `ERROR res: ${JSON.stringify(response)}`, '31');
+									logger('GoldCasesData', `ERROR res: ${JSON.stringify(response.data)}`, '31');
 								}
 							})
 							.catch((error) => {
@@ -1125,13 +1173,19 @@ const getKeyDropUserInfo = async () => {
 
 
 					if (keyDropUsername && keyDropUsername !== '' && typeof keyDropUsername !== 'undefined') {
+						const joinedLength = Object.values(giveawaysmgr.joinedHistoryQueue).reduce(
+							(accumulator, currentValue) => accumulator + currentValue.length,0);
 
-						if (config.auto_giveaways === true && giveawaysmgr.joinedHistoryQueue?.length > 0) {
-							const giveawaysQ = giveawaysmgr.joinedHistoryQueue?.length;
+						if (config.auto_giveaways === true && joinedLength > 0) {
+							const giveawaysQ = joinedLength;
+							const giveawaysQToday = giveawaysmgr.joinedHistoryQueue[getDay('', true)]?.length;
 							const giveawaysWonQ = giveawaysmgr.wonQueue?.length;
 							const giveawaysWon = (giveawaysWonQ > 0) ? ' -> Won: ' + giveawaysWonQ + ' (' + Math.round(((giveawaysWonQ / giveawaysQ) + Number.EPSILON) * 100) + '%)' : '';
 
 							logger('Stats', `\x1b[44m GiveAways joined: ${giveawaysQ}${giveawaysWon} \x1b[0m`);
+
+							if (giveawaysQToday > 0)
+								logger('Stats', `\x1b[44m GiveAways joined 24hs: ${giveawaysQToday} \x1b[0m`);
 						}
 
 						if (config.auto_battletickets == true && battlesmgr.foughtQueue?.length > 0) {
@@ -1318,9 +1372,17 @@ const procKeyDropBattle = async (battleData) => {
 
 
 	if (minPrice === -1 || parseFloat(battle_cases_prize) >= parseFloat(minPrice)) {
-		if (config.keydrop_battles_maxusercount.length > 0) {
-			if (config.keydrop_battles_maxusercount.includes(battle_max_users))
+		if (config.keydrop_battles_maxusercount.length > 0 || config.keydrop_battles_cases_avoid.length) {
+			if (
+					((config.keydrop_battles_maxusercount.length > 0 && config.keydrop_battles_maxusercount.includes(battle_max_users))
+					||
+					config.keydrop_battles_maxusercount.length == 0) &&
+					((config.keydrop_battles_cases_avoid.length > 0 && config.keydrop_battles_cases_avoid.filter(batcase => battle_cases_names.includes(batcase)).length <= 0)
+					||
+					config.keydrop_battles_cases_avoid.length == 0)
+			)
 				battlesmgr.fight(battle_id, battle_max_users);
+
 		} else {
 			battlesmgr.fight(battle_id, battle_max_users);
 		}
@@ -1592,21 +1654,30 @@ const procKeyDropGiveAways = async () => {
 								if (giveawayDetailsData.haveIJoined === false) {
 									logger('GiveAways', `found -> ${giveawayDetailsData.id}`);
 
+									const dayHours = getHours(true);
+									const giveawaysQToday = giveawaysmgr.joinedHistoryQueue[getDay('', true)]?.length ?? 0;
+
 									let totalPrizesPrice = 0;
 									for (let prize of giveawayDetailsData.prizes) {
 										totalPrizesPrice = totalPrizesPrice + parseFloat(prize.price);
 									}
 
-									if (totalPrizesPrice < config.keydrop_giveaways_minprize) {
+									if (giveawayDetailsData.canIJoin === false) {
+										giveawaysmgr.historyQueue.push(id);
+
+										logger('GiveAways', `${giveawayDetailsData.id} -> requirements not met`);
+									}
+									else if (dayHours >= 22 && giveawaysQToday < 10) {
+										logger('GiveAways', `${giveawayDetailsData.id} -> minprize not met but it's late, will proc`);
+
+										giveawaysmgr.proc(id);
+									}
+									else if (totalPrizesPrice < config.keydrop_giveaways_minprize) {
 										giveawaysmgr.historyQueue.push(id);
 
 										logger('GiveAways', `${giveawayDetailsData.id} -> ${config.keydrop_giveaways_minprize}U$D minprize not met (${totalPrizesPrice}U$D)`);
 									}
-									else if (giveawayDetailsData.canIJoin === false) {
-										giveawaysmgr.historyQueue.push(id);
-
-										logger('GiveAways', `${giveawayDetailsData.id} -> requirements not met`);
-									} else {
+									else {
 										giveawaysmgr.proc(id);
 									}
 								}
@@ -2088,7 +2159,7 @@ const redeemGoldenCode = async (code, title = '') => {
 
 	axios
 		.request(axiosConfig.get())
-		.then((response) => {
+		.then(async (response) => {
 			if (
 				typeof response.data !== 'undefined' &&
 				typeof response.data.goldBonus !== 'undefined' &&
@@ -2099,11 +2170,16 @@ const redeemGoldenCode = async (code, title = '') => {
 				keyDropGold = keyDropGold + parseInt(response.data.goldBonus);
 				earnedGold = earnedGold + parseInt(response.data.goldBonus);
 
-				procKeyDropGoldCase();
 				getKeyDropUserInfo();
 			}
 			else if (response.data.errorCode !== 'undefined' && response.data.errorCode === 'usedCode') {
 				logger(`GoldenCode${title}`, `${code} -> Already used code`, '33');
+			}
+			else if (response.data.errorCode !== 'undefined' && response.data.errorCode === 'expiredCode') {
+				logger(`GoldenCode${title}`, `${code} -> Expired code`, '33');
+			}
+			else if (response.data.errorCode !== 'undefined' && response.data.info === 'undefined') {
+				logger(`GoldenCode${title}`, `${code} -> ${response.data.errorCode}`, '33');
 			}
 			else if (response.data.info !== 'undefined' && response.data.info !== '') {
 				logger(`GoldenCode${title}`, `${code} -> ${response.data.info}`, '33');
@@ -2391,14 +2467,6 @@ class BattlesManager {
 	}
 
 	fight(id, maxPlayers) {
-		if (this.historyQueue?.length > config.keydrop_history_regs) {
-			this.historyQueue.shift();
-		}
-
-		if (this.foughtQueue?.length > config.keydrop_history_regs) {
-			this.foughtQueue.shift();
-		}
-
 		if (!this.historyQueue.includes(id)) {
 			this.historyQueue.push(id);
 			this.idQueue.push({ id: id, maxPlayers: maxPlayers });
@@ -2413,7 +2481,7 @@ class GiveAwaysManager {
 		this.isProcessing = false;
 		this.historyQueue = [];
 		this.wonQueue = [];
-		this.joinedHistoryQueue = [];
+		this.joinedHistoryQueue = {};
 		this.joinedQueue = [];
 		this.maxRetries = config.keydrop_giveaways_retries;
 		this.coolDown = 0;
@@ -2567,19 +2635,29 @@ class GiveAwaysManager {
 		this.isProcessing = false;
 	}
 
+	_searchHistory(id){
+		for (const values of Object.values(this.joinedHistoryQueue)) {
+			if (values.includes(id)) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
 	joinQueue(id) {
 		const index = this.joinedQueue.indexOf(id);
 		if (index === -1) {
 			this.joinedQueue.push(id);
 		}
 
-		const indexHist = this.joinedHistoryQueue.indexOf(id);
-		if (indexHist === -1) {
-			if (this.joinedHistoryQueue?.length > config.keydrop_history_regs) {
-				this.joinedHistoryQueue.shift();
-			}
+		const day = getDay('', true);
 
-			this.joinedHistoryQueue.push(id);
+		if (!this._searchHistory(id)) {
+			if (typeof this.joinedHistoryQueue[day] === 'undefined')
+				this.joinedHistoryQueue[day] = [];
+
+			this.joinedHistoryQueue[day].push(id);
 		}
 	}
 
@@ -2598,10 +2676,6 @@ class GiveAwaysManager {
 	}
 
 	async proc(id) {
-		if (this.historyQueue?.length > config.keydrop_history_regs) {
-			this.historyQueue.shift();
-		}
-
 		if (!this.historyQueue.includes(id) && this.coolDown == 0) {
 			this.historyQueue.push(id);
 			this.idQueue.push({ id: id, retries: 0 });

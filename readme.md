@@ -59,10 +59,10 @@ If you change any communication with discord you might break the app.
 
 1.60 keydrop_battles_minprice - Used to look for battles of more than minprice.
 1.61 keydrop_battles_maxusercount - Used to determine wich battles to look for. Available options are: [2, 3, 4]. Array of parameters.
-1.62 keydrop_giveaways_retries - Number of retries to do before leaving the giveaway after next proc (if available).
-1.63 keydrop_giveaways_minprize - Minimun prize of a giveaway to be joined.
-1.64 keydrop_goldencases_autoopen_price - Will autoopen golden cases of this price when gold reaches the value. If the value specified does not have a valid case it will open the nearest below.
-1.65 keydrop_history_regs - Number of history it will save on battles and giveaways. Only reduce to use less memmory.
+1.62 keydrop_battles_cases_avoid - An array of cases names to avoid while looking for battles.
+1.63 keydrop_giveaways_retries - Number of retries to do before leaving the giveaway after next proc (if available).
+1.64 keydrop_giveaways_minprize - Minimun prize of a giveaway to be joined.
+1.65 keydrop_goldencases_autoopen_price - Will autoopen golden cases of this price when gold reaches the value. If the value specified does not have a valid case it will open the nearest below.
 
 ### 2. Cookies
 

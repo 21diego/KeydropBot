@@ -1,8 +1,13 @@
 dist/
 node_modules/
+cookies/*.txt
+cookies/*.txt.*
 package-lock.json
 keydropbot.log
 *.exe
 .vscode
+config.json
+config.json.*
+config.*.json
 chrome/*
 .cache/*
