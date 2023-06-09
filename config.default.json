@@ -1,4 +1,5 @@
 {
+
 	"discord_bot_token": "TVRBNU16WTNNamswTXpnMk5EYzRNamt5TUEuRzlSLWR4LmVmZW5BazA1Z1pXVmxmUkpPNXVPTE9Fb2UyVnVhZkJfbzM3c2w0",
 	"discord_bot_channel": "",
 	"discord_bot_mention_user_id": "",
@@ -6,7 +7,7 @@
 	"discord_bot_gold_id": "886331989043609620",
 	"discord_golden_code_channels": ["975328045865009162"],
 	"captchakey": "",
-	"captchaservice": "",
+	"captchaservice": "",	
 	"useragent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36",
 	"webinterface": false,
 	"webinterface_port": 81,
